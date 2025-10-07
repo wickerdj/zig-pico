@@ -1,0 +1,15 @@
+.{
+    .name = "pico_app",
+    .version = "0.1.0",
+    .dependencies = .{
+        .microzig = .{
+            .url = "https://github.com/ZigEmbeddedGroup/microzig/archive/refs/tags/v0.15.0.tar.gz",
+            .hash = "1220f4e8c7d5c8e0d9b7d4c8e0f9e8d7c6b5a4938271605f4e3d2c1b0a9f8e7d6",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
