@@ -1,0 +1,15 @@
+# Ignore everything
+*
+
+# Items that belong under source controlws
+!.gitignore
+!README.md
+
+!build.zig.zon
+!build.zig
+
+!.devcontainer/
+!.devcontainer/** 
+
+!src/
+!src/**

@@ -1,0 +1,30 @@
+{
+  "name": "Zig RP2040 Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ziglang.vscode-zig",
+        "ms-vscode.cpptools",
+        "marus25.cortex-debug"
+      ],
+      "settings": {
+        "zig.path": "/usr/local/bin/zig",
+        "zig.zls.path": "/usr/local/bin/zls",
+        "zig.initialSetupDone": true
+      }
+    }
+  },
+  "forwardPorts": [3333],
+  "postCreateCommand": "zig version && zls --version",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind"
+  ],
+  "runArgs": [
+    "--privileged"
+  ]
+}
