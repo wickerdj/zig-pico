@@ -11,5 +11,8 @@
 !.devcontainer/
 !.devcontainer/** 
 
+!.gdbinit
+!openocd-rp2040.cfg
+
 !src/
 !src/**
