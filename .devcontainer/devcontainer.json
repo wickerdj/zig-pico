@@ -1,30 +1,26 @@
 {
-  "name": "Zig RP2040 Development",
+  "name": "Zig + Raspberry Pi Pico (RP2040) DevContainer",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": "."
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ziglang.vscode-zig",
-        "ms-vscode.cpptools",
-        "marus25.cortex-debug"
-      ],
-      "settings": {
-        "zig.path": "/usr/local/bin/zig",
-        "zig.zls.path": "/usr/local/bin/zls",
-        "zig.initialSetupDone": true
-      }
+    "context": "..",
+    "args": {
+      "ZIG_VERSION": "0.15.1",
+      "ZLS_VERSION": "v0.11.0"
     }
   },
-  "forwardPorts": [3333],
-  "postCreateCommand": "zig version && zls --version",
-  "remoteUser": "vscode",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "zig.zigPath": "/usr/local/zig/zig",
+    "zig.languageServerPath": "/usr/local/bin/zls"
+  },
   "mounts": [
-    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind"
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
   ],
-  "runArgs": [
-    "--privileged"
-  ]
+  "workspaceFolder": "/workspace",
+  "extensions": [
+    "ziglang.vscode-zig",   // Zig extension for syntax, uses zls
+    "ms-vscode.cmake-tools" // optional: helpful for interacting with pico examples if needed
+  ],
+  "postCreateCommand": "bash /workspace/.devcontainer/post_create.sh || true",
+  "remoteUser": "vscode"
 }

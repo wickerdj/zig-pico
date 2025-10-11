@@ -1,21 +1,23 @@
+const std = @import("std");
 const microzig = @import("microzig");
-const rp2040 = microzig.hal;
-const time = rp2040.time;
-const gpio = rp2040.gpio;
+const rp2xxx = microzig.hal;
+const time = rp2xxx.time;
 
-const led_pin = 25; // Onboard LED on Pico
+// Compile-time pin configuration
+const pin_config = rp2xxx.pins.GlobalConfiguration{
+    .GPIO25 = .{
+        .name = "led",
+        .direction = .out,
+    },
+};
+
+const pins = pin_config.pins();
 
 pub fn main() !void {
-    // Initialize the onboard LED pin
-    const led = gpio.num(led_pin);
-    led.set_function(.sio);
-    led.set_direction(.out);
+    pin_config.apply();
 
-    // Blink loop
     while (true) {
-        led.put(1);
-        time.sleep_ms(500);
-        led.put(0);
-        time.sleep_ms(500);
+        pins.led.toggle();
+        time.sleep_ms(250);
     }
 }

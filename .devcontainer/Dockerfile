@@ -1,79 +1,64 @@
-FROM ubuntu:22.04
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
-    python3 \
-    python3-pip \
-    pkg-config \
-    libusb-1.0-0-dev \
-    libudev-dev \  
-    udev \
-    gdb-multiarch \
-    minicom \
-    openocd \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user
-ARG USERNAME=vscode
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    && apt-get update \
-    && apt-get install -y sudo \
-    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    && chmod +x /etc/sudoers.d/$USERNAME \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Zig 0.15.1
+# Debian base image (slim)
 ARG ZIG_VERSION=0.15.1
-RUN wget https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz \
-    && tar -xf zig-x86_64-linux-${ZIG_VERSION}.tar.xz \
-    && mv zig-x86_64-linux-${ZIG_VERSION} /usr/local/zig \
-    && ln -s /usr/local/zig/zig /usr/local/bin/zig \
-    && rm zig-x86_64-linux-${ZIG_VERSION}.tar.xz
+ARG ZLS_VERSION=0.15.0
 
-    # Install ZLS (Zig Language Server) - matching version
-RUN wget https://github.com/zigtools/zls/releases/download/0.15.0/zls-aarch64-linux.tar.xz  \
-    && tar -xf zls-aarch64-linux.tar.xz  \
-    && mv zls /usr/local/bin/zls \
-    && chmod +x /usr/local/bin/zls \
-    && rm zls-aarch64-linux.tar.xz 
 
-# Install pico-sdk (required for picotool)
-RUN git clone https://github.com/raspberrypi/pico-sdk.git /opt/pico-sdk \
-    && cd /opt/pico-sdk \
-    && git submodule update --init
+FROM debian:bookworm-slim
 
-# Set environment variable for subsequent RUN commands
-ENV PICO_SDK_PATH=/opt/pico-sdk
+ARG ZIG_VERSION
+ARG ZLS_VERSION
 
-# Install picotool (needs PICO_SDK_PATH set)
-RUN git clone https://github.com/raspberrypi/picotool.git /tmp/picotool \
-    && cd /tmp/picotool \
-    && git submodule update --init \
-    && mkdir build && cd build \
-    && PICO_SDK_PATH=/opt/pico-sdk cmake .. \
-    && make -j$(nproc) \
-    && make install \
-    && cd / && rm -rf /tmp/picotool
 
-# Setup udev rules for Pico access
-RUN echo 'SUBSYSTEMS=="usb", ATTRS{idVendor}=="2e8a", MODE:="0666"' > /etc/udev/rules.d/99-pico.rules
+ENV DEBIAN_FRONTEND=noninteractive \
+    PICO_SDK_PATH=/opt/pico-sdk \
+    PICO_EXAMPLES_PATH=/opt/pico-examples \
+    ZIG_ROOT=/usr/local/zig \
+    MICROZIG_ROOT=/opt/microzig
 
-# Configure OpenOCD for RP2040
-RUN mkdir -p /home/$USERNAME/.config/openocd
+# Install essential packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget git build-essential python3 python3-pip \
+    unzip tar xz-utils ca-certificates pkg-config cmake ninja-build \
+    gdb-multiarch openocd rsync jq && \
+    rm -rf /var/lib/apt/lists/*
 
-# Switch to non-root user
-USER $USERNAME
+# Install Zig (official tarball)
+RUN mkdir -p /tmp/zig && \
+    ZIG_TARBALL="zig-x86_64-linux-${ZIG_VERSION}.tar.xz" && \
+    curl -fsSL "https://ziglang.org/download/${ZIG_VERSION}/${ZIG_TARBALL}" -o /tmp/zig/${ZIG_TARBALL} && \
+    mkdir -p ${ZIG_ROOT} && \
+    tar -xJf /tmp/zig/${ZIG_TARBALL} -C /tmp/zig && \
+    mv /tmp/zig/zig-x86_64-linux-${ZIG_VERSION}/* ${ZIG_ROOT}/ && \
+    ln -s ${ZIG_ROOT}/zig /usr/local/bin/zig && \
+    rm -rf /tmp/zig
+
+# Install zls (language server)
+RUN ZLS_ARCHIVE="/tmp/zls.tar.gz" && \
+    ZLS_TARBALL=zls-x86_64-linux-${ZLS_VERSION}.tar.xz && \
+    ZLS_URL=$(curl -sL "https://builds.zigtools.org/${ZLS_TARBALL}" | jq -r '.assets[] | select(.name|test("x86_64.*linux")) | .browser_download_url' ) || true && \
+    if [ -n "$ZLS_URL" ]; then \
+      curl -fsSL "$ZLS_URL" -o ${ZLS_ARCHIVE} && \
+      mkdir -p /tmp/zls && tar -xzf ${ZLS_ARCHIVE} -C /tmp/zls && \
+      mv /tmp/zls/zls /usr/local/bin/zls || mv /tmp/zls/*/zls /usr/local/bin/zls ; \
+    else \
+      echo "Could not determine ZLS URL at build time. Please install zls manually."; \
+    fi && \
+    chmod +x /usr/local/bin/zls || true && \
+    rm -rf /tmp/zls*
+
+
+# Clone Pico SDK and pico-examples into /opt
+RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH} && \
+    git clone --depth=1 https://github.com/raspberrypi/pico-examples.git ${PICO_EXAMPLES_PATH} || true
+
+# Make sure elf2uf2 is available (in pico-sdk tools)
+ENV PATH="${PICO_SDK_PATH}/tools/elf2uf2:${PATH}"
+
+# Create workspace and user
+RUN useradd -m vscode && mkdir -p /workspace && chown -R vscode:vscode /workspace /opt/pico-sdk /opt/pico-examples
+
+USER vscode
 WORKDIR /workspace
 
-# Verify installations
-RUN zig version
+# defaults
+CMD [ "bash" ]
