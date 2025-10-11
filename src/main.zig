@@ -18,6 +18,6 @@ pub fn main() !void {
 
     while (true) {
         pins.led.toggle();
-        time.sleep_ms(250);
+        time.sleep_ms(1000);
     }
 }
