@@ -5,7 +5,7 @@
     "context": "..",
     "args": {
       "ZIG_VERSION": "0.15.1",
-      "ZLS_VERSION": "v0.11.0"
+      "ZLS_VERSION": "0.15.0"
     }
   },
   "settings": {
@@ -13,8 +13,13 @@
     "zig.zigPath": "/usr/local/zig/zig",
     "zig.languageServerPath": "/usr/local/bin/zls"
   },
+  "runArgs": [
+    "--privileged",
+    "--device=/dev/bus/usb"
+  ],
   "mounts": [
-    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "source=/dev/bus/usb,target=/dev/bus/usb,type=bind"
   ],
   "workspaceFolder": "/workspace",
   "extensions": [

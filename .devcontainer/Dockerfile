@@ -19,7 +19,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl wget git build-essential python3 python3-pip \
     unzip tar xz-utils ca-certificates pkg-config cmake ninja-build \
-    gdb-multiarch openocd rsync jq && \
+    gdb-multiarch openocd rsync jq \
+    tio screen minicom \
+    libudev-dev libusb-1.0-0-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Zig (official tarball)
@@ -46,6 +48,9 @@ RUN ZLS_ARCHIVE="/tmp/zls.tar.gz" && \
     chmod +x /usr/local/bin/zls || true && \
     rm -rf /tmp/zls*
 
+# probe-rs installation:
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/probe-rs/probe-rs/releases/latest/download/probe-rs-tools-installer.sh | sh && \
+    mv /root/.cargo/bin/probe-rs /usr/local/bin/ || true
 
 # Clone Pico SDK and pico-examples into /opt
 RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH} && \

@@ -23,7 +23,9 @@ zig build
 ls -l build/pico_app build/pico_app.uf2
 ```
 
-## Debugging with second Pico as probe
+## Debugging
+
+### Debugging with second Pico as probe
 1. Program your second Pico with the picoprobe firmware (see Raspberry Pi docs):
     - The second Pico should run the picoprobe firmware so it acts as a CMSIS-DAP probe.
 2. Connect the probe Pico to the target Pico via SWD (wires for SWDIO, SWCLK, GND and optional RESET).
@@ -37,6 +39,97 @@ gdb-multiarch -x .gdbinit
 ```
 5. Use GDB commands (e.g., monitor reset halt, break main, continue).
 
+### Debugging with OpenOCD + GDB
+
+``` bash
+# Terminal 1
+openocd -f /workspace/openocd-rp2040.cfg
+
+# Terminal 2
+gdb-multiarch -x .gdbinit
+```
+### Debugging wtih probe-rs
+
+Change build.zig to 
+``` zig
+pub fn build(b: *std.Build) void {
+    const mz_dep = b.dependency("microzig", .{});
+    const mb = MicroBuild.init(b, mz_dep) orelse return;
+
+    const firmware = mb.add_firmware(.{
+        .name = "blinky",
+        .target = mb.ports.rp2xxx.boards.raspberrypi.pico,
+        .optimize = .Debug, // Changed for debugging
+        .root_source_file = b.path("src/main.zig"),
+    });
+
+    mb.install_firmware(firmware, .{});
+    mb.install_firmware(firmware, .{ .format = .elf });
+}
+```
+Debug Commands
+``` bash
+# Flash and attach debugger
+probe-rs run --chip RP2040 build/blinky.elf
+
+# Just flash
+probe-rs download --chip RP2040 build/blinky.elf
+
+# Attach to running target
+probe-rs attach --chip RP2040
+```
+
+### Debugging with RTT (Real-Time Transer)
+``` zig
+const std = @import("std");
+const microzig = @import("microzig");
+const rp2xxx = microzig.hal;
+const time = rp2xxx.time;
+
+const pin_config = rp2xxx.pins.GlobalConfiguration{
+    .GPIO25 = .{
+        .name = "led",
+        .direction = .out,
+    },
+};
+
+const pins = pin_config.pins();
+
+pub fn panic(message: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+    @breakpoint();
+    while (true) {}
+}
+
+pub fn main() !void {
+    pin_config.apply();
+    
+    var counter: u32 = 0;
+    
+    while (true) {
+        pins.led.toggle();
+        
+        // Use @breakpoint() for manual breakpoints during debug
+        if (counter == 5) {
+            @breakpoint();
+        }
+        
+        counter += 1;
+        time.sleep_ms(1000);
+    }
+}
+```
+
+### Additional debugging notes
+For non-root USB access, add to host /etc/udev/rules.d/99-pico.rules:
+``` text
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2e8a", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="4853", MODE="0666"
+```
+
+Reload
+``` bash
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 
 
 ## Troubleshooting
