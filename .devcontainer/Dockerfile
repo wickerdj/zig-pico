@@ -1,5 +1,5 @@
 # Debian base image (slim)
-ARG ZIG_VERSION=0.15.1
+ARG ZIG_VERSION=0.15.2
 ARG ZLS_VERSION=0.15.0
 
 
