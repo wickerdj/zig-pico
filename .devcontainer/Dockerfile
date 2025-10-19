@@ -49,8 +49,13 @@ RUN ZLS_ARCHIVE="/tmp/zls.tar.gz" && \
     rm -rf /tmp/zls*
 
 # probe-rs installation:
-RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/probe-rs/probe-rs/releases/latest/download/probe-rs-tools-installer.sh | sh && \
-    mv /root/.cargo/bin/probe-rs /usr/local/bin/ || true
+RUN PROBE_RS_VERSION="0.24.0" && \
+    curl -fsSL "https://github.com/probe-rs/probe-rs/releases/download/v${PROBE_RS_VERSION}/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz" \
+    -o /tmp/probe-rs.tar.xz && \
+    tar -xJf /tmp/probe-rs.tar.xz -C /tmp && \
+    mv /tmp/probe-rs-tools*/probe-rs /usr/local/bin/ && \
+    chmod +x /usr/local/bin/probe-rs && \
+    rm -rf /tmp/probe-rs*
 
 # Clone Pico SDK and pico-examples into /opt
 RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH} && \
@@ -60,7 +65,13 @@ RUN git clone --depth=1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_P
 ENV PATH="${PICO_SDK_PATH}/tools/elf2uf2:${PATH}"
 
 # Create workspace and user
-RUN useradd -m vscode && mkdir -p /workspace && chown -R vscode:vscode /workspace /opt/pico-sdk /opt/pico-examples
+RUN useradd -m vscode && \
+    usermod -aG dialout vscode && \
+    usermod -aG plugdev vscode && \
+    mkdir -p /workspace && \
+    chown -R vscode:vscode /workspace /opt/pico-sdk /opt/pico-examples
+
+USER vscode
 
 USER vscode
 WORKDIR /workspace

@@ -12,7 +12,8 @@ pub fn build(b: *std.Build) void {
     const firmware = mb.add_firmware(.{
         .name = "blinky",
         .target = mb.ports.rp2xxx.boards.raspberrypi.pico,
-        .optimize = .ReleaseSmall,
+        // .optimize = .ReleaseSmall, // For release
+        .optimize = .Debug, // For debugging
         .root_source_file = b.path("src/main.zig"),
     });
 
