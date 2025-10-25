@@ -2,22 +2,43 @@ const std = @import("std");
 const microzig = @import("microzig");
 const rp2xxx = microzig.hal;
 const time = rp2xxx.time;
+const gpio = rp2xxx.gpio;
 
-// Compile-time pin configuration
-const pin_config = rp2xxx.pins.GlobalConfiguration{
-    .GPIO25 = .{
-        .name = "led",
-        .direction = .out,
-    },
+const led = gpio.num(25);
+const uart = rp2xxx.uart.instance.num(0);
+const uart_tx_pin = gpio.num(0);
+
+pub fn panic(message: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+    std.log.err("panic: {s}", .{message});
+    @breakpoint();
+    while (true) {}
+}
+
+pub const microzig_options = microzig.Options{
+    .log_level = .debug,
+    .logFn = rp2xxx.uart.log,
 };
 
-const pins = pin_config.pins();
-
 pub fn main() !void {
-    pin_config.apply();
+    led.set_function(.sio);
+    led.set_direction(.out);
+    led.put(1);
 
-    while (true) {
-        pins.led.toggle();
-        time.sleep_ms(1000);
+    uart_tx_pin.set_function(.uart);
+
+    uart.apply(.{
+        .clock_config = rp2xxx.clock_config,
+    });
+
+    rp2xxx.uart.init_logger(uart);
+
+    var i: u32 = 0;
+    while (true) : (i += 1) {
+        led.put(1);
+        std.log.info("what {}", .{i});
+        time.sleep_ms(500);
+
+        led.put(0);
+        time.sleep_ms(500);
     }
 }

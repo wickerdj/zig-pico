@@ -9,6 +9,12 @@ This repo provides a VS Code DevContainer configured for building Zig programs f
 - OpenOCD + GDB for debugging using a second Pico programmed as a picoprobe
 
 
+## Status
+
+Got blinking to work 
+Learning about UART 
+
+
 ## Quick start (once repo is open in VS Code)
 
 1. Open the repository in VS Code.
@@ -137,3 +143,5 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 - If elf2uf2.py path doesn't exist, check that /opt/pico-sdk exists inside the container and that the repo clone completed.
 
 - If OpenOCD cannot find target/rp2040.cfg you may need an OpenOCD build with RP2040 support or supply the correct script path.
+
+
